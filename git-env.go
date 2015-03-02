@@ -2,15 +2,16 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 func main() {
 	if len(os.Args) < 2 {
 		help()
-		os.Exit(1)
 	}
 
 	switch os.Args[1] {
@@ -25,6 +26,7 @@ func main() {
 
 func help() {
 	fmt.Println("TODO: implement help")
+	os.Exit(1)
 }
 
 type Option struct {
@@ -79,4 +81,85 @@ func _init() {
 }
 
 func branch(args []string) {
+	if len(args) < 1 {
+		help()
+	}
+
+	config, err := readConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	switch args[0] {
+	case "start":
+		if len(args) < 2 {
+			help()
+		}
+		newBranch := args[1]
+
+		runCommand("git", "checkout", config["prod"])
+		runCommand("git", "pull", "--rebase", "origin", config["prod"])
+		runCommand("git", "checkout", "-b", newBranch)
+
+	case "deploy":
+
+		if len(args) < 2 {
+			help()
+		}
+
+		deployEnv := args[1]
+		var feature string
+
+		if len(args) > 2 {
+			feature = args[2]
+		} else {
+			feature, err = getCurrentBranch()
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		runCommand("git", "checkout", feature)
+		runCommand("git", "pull", "--rebase", "origin", config["prod"])
+		runCommand("git", "checkout", deployEnv)
+		runCommand("git", "pull", "--rebase", "origin", deployEnv)
+		runCommand("git", "merge", feature)
+		runCommand("git", "push", "origin", deployEnv)
+
+	default:
+		help()
+	}
+}
+
+func runCommand(cmd ...string) {
+	err := exec.Command(cmd[0], cmd[1:]...).Run()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func readConfig() (map[string]string, error) {
+	//TODO
+	return nil, nil
+}
+
+func getCurrentBranch() (string, error) {
+	stdout, err := exec.Command("git", "branch").Output()
+	if err != nil {
+		return "", err
+	}
+
+	lines := strings.Split(string(stdout), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "* ") {
+			items := strings.Split(line, " ")
+
+			//TODO
+			// return error if the branch is an environment
+
+			return items[1], nil
+		}
+	}
+
+	return "", errors.New("could not detect current branch")
 }
