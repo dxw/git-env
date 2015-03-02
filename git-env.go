@@ -48,7 +48,7 @@ func _init() {
 		{
 			Name:     "types",
 			Question: "What branch types do you have?",
-			Default:  "feature hotfix release",
+			Default:  "feature hotfix",
 		},
 	}
 
