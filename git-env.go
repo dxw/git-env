@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+
+	"github.com/vaughan0/go-ini"
 )
 
 func main() {
@@ -139,8 +142,19 @@ func runCommand(cmd ...string) {
 }
 
 func readConfig() (map[string]string, error) {
-	//TODO
-	return nil, nil
+	stdout, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		panic(err)
+	}
+	pth := string(stdout)[:len(stdout)-1]
+
+	file, err := ini.LoadFile(filepath.Join(pth, ".git/config"))
+	if err != nil {
+		panic(err)
+	}
+
+	config := map[string]string(file.Section("env-branch"))
+	return config, nil
 }
 
 func getCurrentBranch() (string, error) {
