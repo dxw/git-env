@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -137,7 +138,7 @@ func branch(args []string) {
 func runCommand(cmd ...string) {
 	err := exec.Command(cmd[0], cmd[1:]...).Run()
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed executing command: %#v\n", cmd)
 	}
 }
 
