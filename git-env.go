@@ -21,7 +21,7 @@ func main() {
 	case "init":
 		_init()
 	case "branch":
-		branch(os.Args[3:])
+		branch(os.Args[2:])
 	default:
 		help()
 	}
