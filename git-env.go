@@ -10,26 +10,6 @@ import (
 	"strings"
 )
 
-func main() {
-	if len(os.Args) < 2 {
-		help()
-	}
-
-	switch os.Args[1] {
-	case "init":
-		_init()
-	case "branch":
-		branch(os.Args[2:])
-	default:
-		help()
-	}
-}
-
-func help() {
-	fmt.Println("TODO: implement help")
-	os.Exit(1)
-}
-
 type Option struct {
 	Name     string
 	Question string
@@ -54,7 +34,24 @@ var options = []Option{
 	},
 }
 
-func _init() {
+func main() {
+	if len(os.Args) < 2 {
+		help()
+	}
+
+	switch os.Args[1] {
+	case "init":
+		cmdInit()
+	case "branch":
+		cmdBranch(os.Args[2:])
+	default:
+		help()
+	}
+}
+
+// Commands
+
+func cmdInit() {
 	values := map[string]string{}
 	reader := bufio.NewReader(os.Stdin)
 
@@ -81,7 +78,7 @@ func _init() {
 	fmt.Println("You're ready to go.")
 }
 
-func branch(args []string) {
+func cmdBranch(args []string) {
 	if len(args) < 1 {
 		help()
 	}
@@ -130,6 +127,13 @@ func branch(args []string) {
 	default:
 		help()
 	}
+}
+
+// Everything else
+
+func help() {
+	fmt.Println("TODO: implement help")
+	os.Exit(1)
 }
 
 func runCommand(cmd ...string) {
