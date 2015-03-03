@@ -34,6 +34,14 @@ var options = []Option{
 	},
 }
 
+type Config struct {
+	Prod  string
+	Other []string
+	Types []string
+}
+
+var config Config
+
 func main() {
 	if len(os.Args) < 2 {
 		help()
@@ -43,6 +51,7 @@ func main() {
 	case "init":
 		cmdInit()
 	case "branch":
+		readConfig()
 		cmdBranch(os.Args[2:])
 	default:
 		help()
@@ -81,11 +90,6 @@ func cmdInit() {
 func cmdBranch(args []string) {
 	if len(args) < 1 {
 		help()
-	}
-
-	config, err := readConfig()
-	if err != nil {
-		panic(err)
 	}
 
 	switch args[0] {
@@ -143,17 +147,21 @@ func runCommand(cmd ...string) {
 	}
 }
 
-func readConfig() (map[string]string, error) {
-	config := map[string]string{}
+func readConfig() {
+	config = Config{}
+
+	cfg := map[string]string{}
 
 	for _, opt := range options {
 		stdout, err := exec.Command("git", "config", "env-branch."+opt.Name).Output()
 		if err != nil {
-			return nil, err
+			log.Fatalf("This repo isn't git env enabled. Run 'git env init' first.")
 		}
-		config[opt.Name] = string(stdout)[:len(stdout)-1]
+		cfg[opt.Name] = string(stdout)[:len(stdout)-1]
 	}
-	return config, nil
+	config.Prod = cfg["prod"]
+	config.Other = strings.Split(cfg["other"], " ")
+	config.Types = strings.Split(cfg["types"], " ")
 }
 
 func getCurrentBranch() (string, error) {
