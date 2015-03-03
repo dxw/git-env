@@ -71,6 +71,14 @@ func (c Config) IsEnv(branch string) bool {
 	return false
 }
 
+func (c Config) ProdRemote() string {
+	stdout, err := exec.Command("git", "config", "branch."+c.Prod+".remote").Output()
+	if err != nil {
+		log.Fatalf("Failed to get remote of %s branch.", c.Prod)
+	}
+	return string(stdout)[:len(stdout)-1]
+}
+
 var config Config
 
 func main() {
@@ -129,7 +137,7 @@ func cmdStart(args []string) {
 	newBranch := args[0]
 
 	gitCommand("checkout", config.Prod)
-	gitCommand("pull", "--rebase", "origin", config.Prod)
+	gitCommand("pull", "--rebase", config.ProdRemote(), config.Prod)
 	gitCommand("checkout", "-b", newBranch)
 }
 
@@ -152,19 +160,19 @@ func cmdDeploy(args []string) {
 	}
 
 	if !config.IsEnv(deployEnv) {
-		log.Fatalf("Branch %s is not an env branch. Can't merge a feature into it.\n", deployEnv)
+		log.Fatalf("Branch %s is not an env branch. Can't merge a feature into it.", deployEnv)
 	}
 
 	if config.IsEnv(feature) {
-		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.\n", deployEnv)
+		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", deployEnv)
 	}
 
 	gitCommand("checkout", feature)
-	gitCommand("pull", "--rebase", "origin", config.Prod)
+	gitCommand("pull", "--rebase", config.ProdRemote(), config.Prod)
 	gitCommand("checkout", deployEnv)
-	gitCommand("pull", "--rebase", "origin", deployEnv)
+	gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
 	gitCommand("merge", feature)
-	gitCommand("push", "origin", deployEnv)
+	gitCommand("push", config.ProdRemote(), deployEnv)
 }
 
 // Everything else
@@ -184,7 +192,7 @@ func gitCommand(args ...string) {
 	err := cmd.Run()
 
 	if err != nil {
-		log.Fatalf("Failed executing command: git %s\n", strings.Join(args, " "))
+		log.Fatalf("Failed executing command: git %s", strings.Join(args, " "))
 	}
 }
 
