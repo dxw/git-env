@@ -40,6 +40,37 @@ type Config struct {
 	Types []string
 }
 
+func LoadConfig() Config {
+	config = Config{}
+
+	cfg := map[string]string{}
+
+	for _, opt := range options {
+		stdout, err := exec.Command("git", "config", "env-branch."+opt.Name).Output()
+		if err != nil {
+			log.Fatalf("This repo isn't git env enabled. Run 'git env init' first.")
+		}
+		cfg[opt.Name] = string(stdout)[:len(stdout)-1]
+	}
+	config.Prod = cfg["prod"]
+	config.Other = strings.Split(cfg["other"], " ")
+	config.Types = strings.Split(cfg["types"], " ")
+
+	return config
+}
+
+func (c Config) IsEnv(branch string) bool {
+	if branch == config.Prod {
+		return true
+	}
+	for _, b := range config.Other {
+		if branch == b {
+			return true
+		}
+	}
+	return false
+}
+
 var config Config
 
 func main() {
@@ -51,7 +82,7 @@ func main() {
 	case "init":
 		cmdInit()
 	case "branch":
-		readConfig()
+		config = LoadConfig()
 		cmdBranch(os.Args[2:])
 	default:
 		help()
@@ -122,6 +153,14 @@ func cmdBranch(args []string) {
 			}
 		}
 
+		if !config.IsEnv(deployEnv) {
+			log.Fatalf("Branch %s is not an env branch. Can't merge a feature into it.\n", deployEnv)
+		}
+
+		if config.IsEnv(feature) {
+			log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.\n", deployEnv)
+		}
+
 		gitCommand("checkout", feature)
 		gitCommand("pull", "--rebase", "origin", config.Prod)
 		gitCommand("checkout", deployEnv)
@@ -153,23 +192,6 @@ func gitCommand(args ...string) {
 	if err != nil {
 		log.Fatalf("Failed executing command: git %s\n", strings.Join(args, " "))
 	}
-}
-
-func readConfig() {
-	config = Config{}
-
-	cfg := map[string]string{}
-
-	for _, opt := range options {
-		stdout, err := exec.Command("git", "config", "env-branch."+opt.Name).Output()
-		if err != nil {
-			log.Fatalf("This repo isn't git env enabled. Run 'git env init' first.")
-		}
-		cfg[opt.Name] = string(stdout)[:len(stdout)-1]
-	}
-	config.Prod = cfg["prod"]
-	config.Other = strings.Split(cfg["other"], " ")
-	config.Types = strings.Split(cfg["types"], " ")
 }
 
 func getCurrentBranch() (string, error) {
