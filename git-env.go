@@ -7,10 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
-
-	"github.com/vaughan0/go-ini"
 )
 
 func main() {
@@ -39,25 +36,25 @@ type Option struct {
 	Default  string
 }
 
-func _init() {
-	options := []Option{
-		{
-			Name:     "prod",
-			Question: "What is your production environment branch?",
-			Default:  "master",
-		},
-		{
-			Name:     "other",
-			Question: "What other environment branches do you have?",
-			Default:  "stage dev",
-		},
-		{
-			Name:     "types",
-			Question: "What branch types do you have?",
-			Default:  "feature hotfix",
-		},
-	}
+var options = []Option{
+	{
+		Name:     "prod",
+		Question: "What is your production environment branch?",
+		Default:  "master",
+	},
+	{
+		Name:     "other",
+		Question: "What other environment branches do you have?",
+		Default:  "stage dev",
+	},
+	{
+		Name:     "types",
+		Question: "What branch types do you have?",
+		Default:  "feature hotfix",
+	},
+}
 
+func _init() {
 	values := map[string]string{}
 	reader := bufio.NewReader(os.Stdin)
 
@@ -143,18 +140,15 @@ func runCommand(cmd ...string) {
 }
 
 func readConfig() (map[string]string, error) {
-	stdout, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
-	if err != nil {
-		panic(err)
-	}
-	pth := string(stdout)[:len(stdout)-1]
+	config := map[string]string{}
 
-	file, err := ini.LoadFile(filepath.Join(pth, ".git/config"))
-	if err != nil {
-		panic(err)
+	for _, opt := range options {
+		stdout, err := exec.Command("git", "config", "env-branch."+opt.Name).Output()
+		if err != nil {
+			return nil, err
+		}
+		config[opt.Name] = string(stdout)[:len(stdout)-1]
 	}
-
-	config := map[string]string(file.Section("env-branch"))
 	return config, nil
 }
 
