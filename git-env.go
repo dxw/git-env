@@ -99,9 +99,9 @@ func cmdBranch(args []string) {
 		}
 		newBranch := args[1]
 
-		runCommand("git", "checkout", config["prod"])
-		runCommand("git", "pull", "--rebase", "origin", config["prod"])
-		runCommand("git", "checkout", "-b", newBranch)
+		gitCommand("checkout", config.Prod)
+		gitCommand("pull", "--rebase", "origin", config.Prod)
+		gitCommand("checkout", "-b", newBranch)
 
 	case "deploy":
 
@@ -111,6 +111,7 @@ func cmdBranch(args []string) {
 
 		deployEnv := args[1]
 		var feature string
+		var err error
 
 		if len(args) > 2 {
 			feature = args[2]
@@ -121,12 +122,12 @@ func cmdBranch(args []string) {
 			}
 		}
 
-		runCommand("git", "checkout", feature)
-		runCommand("git", "pull", "--rebase", "origin", config["prod"])
-		runCommand("git", "checkout", deployEnv)
-		runCommand("git", "pull", "--rebase", "origin", deployEnv)
-		runCommand("git", "merge", feature)
-		runCommand("git", "push", "origin", deployEnv)
+		gitCommand("checkout", feature)
+		gitCommand("pull", "--rebase", "origin", config.Prod)
+		gitCommand("checkout", deployEnv)
+		gitCommand("pull", "--rebase", "origin", deployEnv)
+		gitCommand("merge", feature)
+		gitCommand("push", "origin", deployEnv)
 
 	default:
 		help()
@@ -140,10 +141,17 @@ func help() {
 	os.Exit(1)
 }
 
-func runCommand(cmd ...string) {
-	err := exec.Command(cmd[0], cmd[1:]...).Run()
+func gitCommand(args ...string) {
+	fmt.Printf("+ git %s\n", strings.Join(args, " "))
+	cmd := exec.Command("git", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	err := cmd.Run()
+
 	if err != nil {
-		log.Fatalf("Failed executing command: %#v\n", cmd)
+		log.Fatalf("Failed executing command: git %s\n", strings.Join(args, " "))
 	}
 }
 
