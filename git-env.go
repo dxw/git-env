@@ -81,9 +81,12 @@ func main() {
 	switch os.Args[1] {
 	case "init":
 		cmdInit()
-	case "branch":
+	case "start":
 		config = LoadConfig()
-		cmdBranch(os.Args[2:])
+		cmdStart(os.Args[2:])
+	case "deploy":
+		config = LoadConfig()
+		cmdDeploy(os.Args[2:])
 	default:
 		help()
 	}
@@ -118,59 +121,50 @@ func cmdInit() {
 	fmt.Println("You're ready to go.")
 }
 
-func cmdBranch(args []string) {
+func cmdStart(args []string) {
 	if len(args) < 1 {
 		help()
 	}
 
-	switch args[0] {
-	case "start":
-		if len(args) < 2 {
-			help()
-		}
-		newBranch := args[1]
+	newBranch := args[0]
 
-		gitCommand("checkout", config.Prod)
-		gitCommand("pull", "--rebase", "origin", config.Prod)
-		gitCommand("checkout", "-b", newBranch)
+	gitCommand("checkout", config.Prod)
+	gitCommand("pull", "--rebase", "origin", config.Prod)
+	gitCommand("checkout", "-b", newBranch)
+}
 
-	case "deploy":
-
-		if len(args) < 2 {
-			help()
-		}
-
-		deployEnv := args[1]
-		var feature string
-		var err error
-
-		if len(args) > 2 {
-			feature = args[2]
-		} else {
-			feature, err = getCurrentBranch()
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		if !config.IsEnv(deployEnv) {
-			log.Fatalf("Branch %s is not an env branch. Can't merge a feature into it.\n", deployEnv)
-		}
-
-		if config.IsEnv(feature) {
-			log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.\n", deployEnv)
-		}
-
-		gitCommand("checkout", feature)
-		gitCommand("pull", "--rebase", "origin", config.Prod)
-		gitCommand("checkout", deployEnv)
-		gitCommand("pull", "--rebase", "origin", deployEnv)
-		gitCommand("merge", feature)
-		gitCommand("push", "origin", deployEnv)
-
-	default:
+func cmdDeploy(args []string) {
+	if len(args) < 1 {
 		help()
 	}
+
+	deployEnv := args[0]
+	var feature string
+	var err error
+
+	if len(args) > 1 {
+		feature = args[1]
+	} else {
+		feature, err = getCurrentBranch()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if !config.IsEnv(deployEnv) {
+		log.Fatalf("Branch %s is not an env branch. Can't merge a feature into it.\n", deployEnv)
+	}
+
+	if config.IsEnv(feature) {
+		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.\n", deployEnv)
+	}
+
+	gitCommand("checkout", feature)
+	gitCommand("pull", "--rebase", "origin", config.Prod)
+	gitCommand("checkout", deployEnv)
+	gitCommand("pull", "--rebase", "origin", deployEnv)
+	gitCommand("merge", feature)
+	gitCommand("push", "origin", deployEnv)
 }
 
 // Everything else
