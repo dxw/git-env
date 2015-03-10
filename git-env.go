@@ -27,17 +27,11 @@ var options = []Option{
 		Question: "What other environment branches do you have?",
 		Default:  "stage dev",
 	},
-	{
-		Name:     "types",
-		Question: "What branch types do you have?",
-		Default:  "feature hotfix",
-	},
 }
 
 type Config struct {
 	Prod  string
 	Other []string
-	Types []string
 }
 
 func LoadConfig() Config {
@@ -54,7 +48,6 @@ func LoadConfig() Config {
 	}
 	config.Prod = cfg["prod"]
 	config.Other = strings.Split(cfg["other"], " ")
-	config.Types = strings.Split(cfg["types"], " ")
 
 	return config
 }
