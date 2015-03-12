@@ -75,21 +75,31 @@ func (c Config) ProdRemote() string {
 var config Config
 
 func main() {
-	if len(os.Args) < 2 {
-		help()
+	if len(os.Args) > 1 && os.Args[1] == "init" {
+		cmdInit()
+		return
 	}
 
-	switch os.Args[1] {
-	case "init":
-		cmdInit()
-	case "start":
-		config = LoadConfig()
-		cmdStart(os.Args[2:])
-	case "deploy":
-		config = LoadConfig()
-		cmdDeploy(os.Args[2:])
-	default:
-		help()
+	config = LoadConfig()
+
+	if len(os.Args) < 2 {
+		help("")
+	} else {
+
+		switch os.Args[1] {
+		case "start":
+			cmdStart(os.Args[2:])
+		case "deploy":
+			cmdDeploy(os.Args[2:])
+		case "help":
+			if len(os.Args) > 2 {
+				help(os.Args[2])
+			} else {
+				help("")
+			}
+		default:
+			help("")
+		}
 	}
 }
 
@@ -124,7 +134,7 @@ func cmdInit() {
 
 func cmdStart(args []string) {
 	if len(args) < 1 {
-		help()
+		help("start")
 	}
 
 	newBranch := args[0]
@@ -136,7 +146,7 @@ func cmdStart(args []string) {
 
 func cmdDeploy(args []string) {
 	if len(args) < 1 {
-		help()
+		help("deploy")
 	}
 
 	deployEnv := args[0]
@@ -170,9 +180,19 @@ func cmdDeploy(args []string) {
 
 // Everything else
 
-func help() {
-	fmt.Println("TODO: implement help")
-	os.Exit(1)
+func help(arg string) {
+	switch arg {
+	//TODO: add in-depth documentation for each command
+	// case "init":
+	// case "start":
+	// case "deploy":
+	default:
+		fmt.Println("Commands:")
+		fmt.Println("  git env help [COMMAND]                     - show help")
+		fmt.Println("  git env init                               - configure which ENV branches are being used")
+		fmt.Println("  git env start BRANCH_NAME                  - start a new feature branch")
+		fmt.Println("  git env deploy ENV_BRANCH [FEATURE_BRANCH] - deploy a feature branch to an ENV branch (FEATURE_BRANCH defaults to current branch)")
+	}
 }
 
 func gitCommand(args ...string) {
@@ -199,9 +219,6 @@ func getCurrentBranch() (string, error) {
 	for _, line := range lines {
 		if strings.HasPrefix(line, "* ") {
 			items := strings.Split(line, " ")
-
-			//TODO
-			// return error if the branch is an environment
 
 			return items[1], nil
 		}
