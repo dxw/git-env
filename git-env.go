@@ -175,7 +175,8 @@ func cmdDeploy(args []string) {
 	gitCommand("checkout", deployEnv)
 	gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
 	gitCommand("merge", feature)
-	gitCommand("push", config.ProdRemote(), deployEnv)
+	// Let's not push anything - leave that up to the developer
+	// gitCommand("push", config.ProdRemote(), deployEnv)
 }
 
 // Everything else
