@@ -227,13 +227,18 @@ func gitCommand(args ...string) {
 	}
 }
 
-func getCurrentBranch() (string, error) {
+func gitBranch() (string, error) {
 	stdout, err := exec.Command("git", "branch").Output()
+	return string(stdout), err
+}
+
+func getCurrentBranch_(gitBranch func() (string, error)) (string, error) {
+	stdout, err := gitBranch()
 	if err != nil {
 		return "", err
 	}
 
-	lines := strings.Split(string(stdout), "\n")
+	lines := strings.Split(stdout, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "* ") {
 			items := strings.Split(line, " ")
@@ -243,4 +248,8 @@ func getCurrentBranch() (string, error) {
 	}
 
 	return "", errors.New("could not detect current branch")
+}
+
+func getCurrentBranch() (string, error) {
+	return getCurrentBranch_(gitBranch)
 }
