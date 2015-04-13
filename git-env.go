@@ -16,47 +16,46 @@ type Option struct {
 	Default  string
 }
 
-var options = []Option{
-	{
-		Name:     "prod",
-		Question: "What is your production environment branch?",
-		Default:  "master",
-	},
-	{
-		Name:     "other",
-		Question: "What other environment branches do you have?",
-		Default:  "stage dev",
-	},
-}
-
 type Config struct {
 	Prod  string
 	Other []string
 }
 
-func LoadConfig() Config {
-	config = Config{}
+func LoadConfig_(getOption func(string) (string, error)) (*Config, error) {
+	config := Config{}
 
 	cfg := map[string]string{}
 
 	for _, opt := range options {
-		stdout, err := exec.Command("git", "config", "env-branch."+opt.Name).Output()
+		s, err := getOption(opt.Name)
 		if err != nil {
-			log.Fatalf("This repo isn't git env enabled. Run 'git env init' first.")
+			return nil, err
 		}
-		cfg[opt.Name] = string(stdout)[:len(stdout)-1]
+		cfg[opt.Name] = s
 	}
 	config.Prod = cfg["prod"]
 	config.Other = strings.Split(cfg["other"], " ")
 
-	return config
+	return &config, nil
+}
+
+func LoadConfig() (*Config, error) {
+	return LoadConfig_(getOption)
+}
+
+func getOption(opt string) (string, error) {
+	stdout, err := exec.Command("git", "config", "env-branch."+opt).Output()
+	if err != nil {
+		return "", errors.New("This repo isn't git env enabled. Run 'git env init' first.")
+	}
+	return string(stdout)[:len(stdout)-1], nil
 }
 
 func (c Config) IsEnv(branch string) bool {
-	if branch == config.Prod {
+	if branch == c.Prod {
 		return true
 	}
-	for _, b := range config.Other {
+	for _, b := range c.Other {
 		if branch == b {
 			return true
 		}
@@ -72,7 +71,21 @@ func (c Config) ProdRemote() string {
 	return string(stdout)[:len(stdout)-1]
 }
 
-var config Config
+var (
+	config  *Config
+	options = []Option{
+		{
+			Name:     "prod",
+			Question: "What is your production environment branch?",
+			Default:  "master",
+		},
+		{
+			Name:     "other",
+			Question: "What other environment branches do you have?",
+			Default:  "stage dev",
+		},
+	}
+)
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "init" {
@@ -80,7 +93,11 @@ func main() {
 		return
 	}
 
-	config = LoadConfig()
+	var err error
+	config, err = LoadConfig()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	if len(os.Args) < 2 {
 		help("")
