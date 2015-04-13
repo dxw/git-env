@@ -167,7 +167,7 @@ func cmdDeploy(args []string) {
 	}
 
 	if config.IsEnv(feature) {
-		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", deployEnv)
+		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", feature)
 	}
 
 	gitCommand("checkout", feature)
