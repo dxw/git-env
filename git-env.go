@@ -88,8 +88,23 @@ var (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "init" {
+	if len(os.Args) < 2 {
+		help("")
+		return
+	}
+
+	// Do help and init commands before loading config
+
+	switch os.Args[1] {
+	case "init":
 		cmdInit()
+		return
+	case "help":
+		if len(os.Args) > 2 {
+			help(os.Args[2])
+		} else {
+			help("")
+		}
 		return
 	}
 
@@ -99,24 +114,15 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if len(os.Args) < 2 {
-		help("")
-	} else {
+	// Do start and deploy commands only after loading config
 
-		switch os.Args[1] {
-		case "start":
-			cmdStart(os.Args[2:])
-		case "deploy":
-			cmdDeploy(os.Args[2:])
-		case "help":
-			if len(os.Args) > 2 {
-				help(os.Args[2])
-			} else {
-				help("")
-			}
-		default:
-			help("")
-		}
+	switch os.Args[1] {
+	case "start":
+		cmdStart(os.Args[2:])
+	case "deploy":
+		cmdDeploy(os.Args[2:])
+	default:
+		help("")
 	}
 }
 
