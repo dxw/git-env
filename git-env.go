@@ -62,6 +62,9 @@ func (c Config) IsEnv(branch string) bool {
 	}
 	return false
 }
+func (c Config) IsProd(branch string) bool {
+	return branch == c.Prod
+}
 
 func (c Config) ProdRemote() string {
 	stdout, err := exec.Command("git", "config", "branch."+c.Prod+".remote").Output()
@@ -193,13 +196,19 @@ func cmdDeploy(args []string) {
 		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", feature)
 	}
 
+	// Rebase against production for all merges
 	gitCommand("checkout", feature)
 	gitCommand("pull", "--rebase", config.ProdRemote(), config.Prod)
 	gitCommand("checkout", deployEnv)
-	gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
-	gitCommand("merge", feature)
-	// Let's not push anything - leave that up to the developer
-	// gitCommand("push", config.ProdRemote(), deployEnv)
+
+	if config.IsProd(deployEnv) {
+		// In a production merge use --no-ff so the branch names are preserved
+		gitCommand("merge", "--no-ff", feature)
+	} else {
+		// In a non-production merge rebase against the remote env branch and merge
+		gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
+		gitCommand("merge", feature)
+	}
 }
 
 // Everything else
