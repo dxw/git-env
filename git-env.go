@@ -203,6 +203,7 @@ func cmdDeploy(args []string) {
 
 	if config.IsProd(deployEnv) {
 		// In a production merge use --no-ff so the branch names are preserved
+		gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
 		gitCommand("merge", "--no-ff", feature)
 	} else {
 		// In a non-production merge rebase against the remote env branch and merge
