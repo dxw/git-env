@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 )
 
 type Option struct {
@@ -17,8 +19,9 @@ type Option struct {
 }
 
 type Config struct {
-	Prod  string
-	Other []string
+	Prod       string
+	Other      []string
+	ProdDeploy string
 }
 
 func LoadConfig_(getOption func(string) (string, error)) (*Config, error) {
@@ -35,6 +38,7 @@ func LoadConfig_(getOption func(string) (string, error)) (*Config, error) {
 	}
 	config.Prod = cfg["prod"]
 	config.Other = strings.Split(cfg["other"], " ")
+	config.ProdDeploy = cfg["prod-deploy"]
 
 	return &config, nil
 }
@@ -79,13 +83,18 @@ var (
 	options = []Option{
 		{
 			Name:     "prod",
-			Question: "What is your production environment branch?",
+			Question: "What is your production branch?",
 			Default:  "master",
 		},
 		{
 			Name:     "other",
 			Question: "What other environment branches do you have?",
 			Default:  "stage dev",
+		},
+		{
+			Name:     "prod-deploy",
+			Question: "What command should be run to deploy to the production branch?",
+			Default:  "git checkout {{.env}} && git merge --no-ff {{.feature}}",
 		},
 	}
 )
@@ -196,18 +205,25 @@ func cmdDeploy(args []string) {
 		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", feature)
 	}
 
-	// Rebase against production for all merges
+	// Rebase feature and env against upstream
 	gitCommand("checkout", feature)
 	gitCommand("pull", "--rebase", config.ProdRemote(), config.Prod)
 	gitCommand("checkout", deployEnv)
+	gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
 
 	if config.IsProd(deployEnv) {
 		// In a production merge use --no-ff so the branch names are preserved
-		gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
-		gitCommand("merge", "--no-ff", feature)
+		gitCommand("checkout", feature)
+
+		s := bytes.NewBufferString("")
+		err := template.Must(template.New("").Parse(config.ProdDeploy)).Execute(s, map[string]string{"env": deployEnv, "feature": feature})
+		if err != nil {
+			panic(err)
+		}
+
+		runCommand("sh", "-c", s.String())
 	} else {
 		// In a non-production merge rebase against the remote env branch and merge
-		gitCommand("pull", "--rebase", config.ProdRemote(), deployEnv)
 		gitCommand("merge", feature)
 	}
 }
@@ -230,16 +246,20 @@ func help(arg string) {
 }
 
 func gitCommand(args ...string) {
-	fmt.Printf("+ git %s\n", strings.Join(args, " "))
-	cmd := exec.Command("git", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	runCommand("git", args...)
+}
 
-	err := cmd.Run()
+func runCommand(cmd string, args ...string) {
+	fmt.Printf("+ %s %s\n", cmd, strings.Join(args, " "))
+	c := exec.Command(cmd, args...)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	c.Stdin = os.Stdin
+
+	err := c.Run()
 
 	if err != nil {
-		log.Fatalf("Failed executing command: git %s", strings.Join(args, " "))
+		log.Fatalf("Failed executing command: %s %s", cmd, strings.Join(args, " "))
 	}
 }
 
