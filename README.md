@@ -43,7 +43,18 @@ This is equivalent to:
     git checkout feature/meow
     git pull --rebase origin master
     git checkout master
-    git merge --no-ff feature/meow
+    git pull --rebase origin master
+    git checkout feature/meow
+
+Followed by the command you set when running "git env init".
+
+The default is:
+
+    git checkout {{.env}} && git merge --no-ff {{.feature}}
+
+But if you use GitHub pull requests to merge changes into master, for example, you may want to set it to:
+
+    hub pull-request -b {{.env}} -h {{.feature}}
 
 ## Notes
 
