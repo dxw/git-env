@@ -60,3 +60,7 @@ But if you use GitHub pull requests to merge changes into master, for example, y
 
 * The original document mentions pushing your changes after merging. The git-env tool will never push.
 * git-env runs commands like "git pull --rebase origin master" - it will use the value of `branch.master.remote` for the remote in that command.
+
+## Licence
+
+MIT
