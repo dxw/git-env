@@ -16,7 +16,7 @@ Start by answering a couple of questions about how your repository is set up:
 
     git env init
 
-### `git env start feature/meow`
+### git env start feature/meow
 
 If using the defaults options, this is equivalent to:
 
@@ -24,7 +24,7 @@ If using the defaults options, this is equivalent to:
     git pull --rebase origin master
     git checkout -b feature/meow
 
-### `git env deploy stage feature/meow`
+### git env deploy stage feature/meow
 
 (You may omit the second argument to deploy if you want to merge the current branch).
 
@@ -36,7 +36,7 @@ This is equivalent to:
     git pull --rebase origin stage
     git merge feature/meow
 
-### `git env deploy master feature/meow`
+### git env deploy master feature/meow
 
 This is equivalent to:
 
