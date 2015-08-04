@@ -79,7 +79,7 @@ func (c Config) ProdRemote() string {
 }
 
 var (
-	VERSION = "1.1.0-dev"
+	VERSION = "1.2.0-dev"
 	config  *Config
 	options = []Option{
 		{
@@ -209,6 +209,11 @@ func cmdDeploy(args []string) {
 		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", feature)
 	}
 
+	// Check branch and origin/branch point at the same commit
+	if gitRevParse(deployEnv) != gitRevParse(config.ProdRemote()+"/"+deployEnv) {
+		log.Fatalf("Branch %s and branch %s/%s do not point at the same commit.", deployEnv, config.ProdRemote(), deployEnv)
+	}
+
 	// Rebase feature and env against upstream
 	gitCommand("checkout", feature)
 	gitCommand("pull", "--rebase", config.ProdRemote(), config.Prod)
@@ -271,6 +276,14 @@ func runCommand(cmd string, args ...string) {
 func gitBranch() (string, error) {
 	stdout, err := exec.Command("git", "branch").Output()
 	return string(stdout), err
+}
+
+func gitRevParse(branch string) string {
+	stdout, err := exec.Command("git", "rev-parse", branch).Output()
+	if err != nil {
+		log.Fatalf("Failed executing command: git rev-parse %s", branch)
+	}
+	return string(stdout)
 }
 
 func getCurrentBranch_(gitBranch func() (string, error)) (string, error) {
