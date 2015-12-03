@@ -79,6 +79,7 @@ func (c Config) ProdRemote() string {
 }
 
 var (
+	VERSION = "1.2.0-dev"
 	config  *Config
 	options = []Option{
 		{
@@ -117,6 +118,9 @@ func main() {
 		} else {
 			help("")
 		}
+		return
+	case "version":
+		fmt.Printf("git-env version: %s\n", VERSION)
 		return
 	}
 
@@ -205,6 +209,11 @@ func cmdDeploy(args []string) {
 		log.Fatalf("Branch %s is an env branch. Can't merge an env branch into another env branch.", feature)
 	}
 
+	// Check branch and origin/branch point at the same commit
+	if gitRevParse(deployEnv) != gitRevParse(config.ProdRemote()+"/"+deployEnv) {
+		log.Fatalf("Branch %s and branch %s/%s do not point at the same commit.", deployEnv, config.ProdRemote(), deployEnv)
+	}
+
 	// Rebase feature and env against upstream
 	gitCommand("checkout", feature)
 	gitCommand("pull", "--rebase", config.ProdRemote(), config.Prod)
@@ -239,6 +248,7 @@ func help(arg string) {
 	default:
 		fmt.Println("Commands:")
 		fmt.Println("  git env help                               - show this help")
+		fmt.Println("  git env version                            - show git-env's version")
 		fmt.Println("  git env init                               - configure which ENV branches are being used")
 		fmt.Println("  git env start BRANCH_NAME                  - start a new feature branch")
 		fmt.Println("  git env deploy ENV_BRANCH [FEATURE_BRANCH] - deploy a feature branch to an ENV branch (FEATURE_BRANCH defaults to current branch)")
@@ -266,6 +276,14 @@ func runCommand(cmd string, args ...string) {
 func gitBranch() (string, error) {
 	stdout, err := exec.Command("git", "branch").Output()
 	return string(stdout), err
+}
+
+func gitRevParse(branch string) string {
+	stdout, err := exec.Command("git", "rev-parse", branch).Output()
+	if err != nil {
+		log.Fatalf("Failed executing command: git rev-parse %s", branch)
+	}
+	return string(stdout)
 }
 
 func getCurrentBranch_(gitBranch func() (string, error)) (string, error) {
