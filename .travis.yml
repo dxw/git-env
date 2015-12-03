@@ -1,5 +1,9 @@
 language: go
 sudo: false
+command:
+  - go test ./...
+  - go vet ./...
+  - errcheck
 go:
   - 1.5
   - tip
