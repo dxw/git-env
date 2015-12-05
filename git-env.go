@@ -79,6 +79,7 @@ func (c Config) ProdRemote() string {
 }
 
 var (
+	VERSION = "1.1.0-dev"
 	config  *Config
 	options = []Option{
 		{
@@ -117,6 +118,9 @@ func main() {
 		} else {
 			help("")
 		}
+		return
+	case "version":
+		fmt.Printf("git-env version: %s\n", VERSION)
 		return
 	}
 
@@ -239,6 +243,7 @@ func help(arg string) {
 	default:
 		fmt.Println("Commands:")
 		fmt.Println("  git env help                               - show this help")
+		fmt.Println("  git env version                            - show git-env's version")
 		fmt.Println("  git env init                               - configure which ENV branches are being used")
 		fmt.Println("  git env start BRANCH_NAME                  - start a new feature branch")
 		fmt.Println("  git env deploy ENV_BRANCH [FEATURE_BRANCH] - deploy a feature branch to an ENV branch (FEATURE_BRANCH defaults to current branch)")
